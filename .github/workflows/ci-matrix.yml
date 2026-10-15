@@ -1,0 +1,44 @@
+name: Multi-JDK Matrix CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  matrix-test:
+    name: Build & Test on Java ${{ matrix.java-version }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        java-version: ['17', '21']
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission to Gradlew
+        run: chmod +x gradlew
+
+      - name: Run Test with JDK ${{ matrix.java-version }}
+        run: ./gradlew test --no-daemon
+
+      - name: Upload Test Report for JDK ${{ matrix.java-version }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-jdk-${{ matrix.java-version }}
+          path: build/reports/tests/test/
+          retention-days: 5
